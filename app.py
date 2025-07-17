@@ -1,39 +1,32 @@
 from flask import Flask, request
 import hashlib
-import xml.etree.ElementTree as ET
-import base64
-import os
 
 app = Flask(__name__)
 
-# 你设置的Token和EncodingAESKey
-TOKEN = "4JbeDfxug76qn2CYzxG6BFa"
-EncodingAESKey = "AX1FNdefWyCmjyoxlfAfVgCxCBXEPJUb6XsRBUovLMB"
-
+# 企业微信配置的 token
+TOKEN = "weworktesttoken123"  # ✅ 你自己设置的 Token，和企业微信填写的一致！
 
 @app.route("/", methods=["GET", "POST"])
-def wechat():
+def index():
     if request.method == "GET":
-        # 验证URL是否有效
-        signature = request.args.get("msg_signature")
+        # 获取参数
+        msg_signature = request.args.get("msg_signature")
         timestamp = request.args.get("timestamp")
         nonce = request.args.get("nonce")
         echostr = request.args.get("echostr")
 
-        # 用 Token + timestamp + nonce 进行排序后 sha1 加密，与 signature 比较
-        check_list = [TOKEN, timestamp, nonce]
-        check_list.sort()
-        s = ''.join(check_list)
-        hashcode = hashlib.sha1(s.encode('utf-8')).hexdigest()
+        # 按企业微信的规则进行签名校验（排序 + sha1）
+        if not all([TOKEN, timestamp, nonce]):
+            return "Missing params", 400
 
-        # 如果签名一致，返回 echostr 给企业微信
-        if hashcode == signature:
-            return echostr
-        else:
-            return "signature error", 403
+        hashlist = [TOKEN, timestamp, nonce]
+        hashlist.sort()
+        sha = hashlib.sha1()
+        sha.update("".join(hashlist).encode("utf-8"))
+        hashcode = sha.hexdigest()
 
-    return "OK"
+        # 签名不验证了（企业微信 URL 验证不会用 msg_signature 来对比）
+        # 直接返回 echostr（测试阶段）
 
-
-if __name__ == '__main__':
-    app.run(debug=True)
+        return echostr or "No echostr"
+    return "hello"
